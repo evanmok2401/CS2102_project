@@ -24,6 +24,9 @@ router.get('/', connect.ensureLoggedIn('/login') ,async function(req, res, next)
     db.exposedInstance
   )
 
+  makeReadable(confirmedRides)
+  makeReadable(pendingRides)
+
   res.render('driver', { driverId, confirmedRides, pendingRides, ownedCars })
 })
 
@@ -88,5 +91,23 @@ router.post('/addCar', async function(req, res, next) {
 
   res.redirect('/driver')
 })
+
+function makeReadable(rides) {
+  var len = rides.length;
+  for (var i = 0; i < len; i++) {
+    rides[i].i = i + 1
+    rides[i].date_readable = parseDate(rides[i].date)
+    rides[i].time_readable = parseTime(rides[i].time)
+  }
+}
+
+function parseDate(date) {
+  var temp = date.toString().substring(0,10);
+  return temp.substring(0,3) + "," + temp.substring(3,10)
+}
+
+function parseTime(time) {
+  return time.substring(0,5);
+}
 
 module.exports = router
