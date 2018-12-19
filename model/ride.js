@@ -51,9 +51,9 @@ const listAvailableAdvertisedCarRidesForRider = async (user, currentDate, curren
     EXCEPT
 
     -- Car rides the user has bid
-    SELECT b.driver, b.date, b.time, b.origin, b.destination FROM bid b
+    (SELECT b.driver, b.date, b.time, b.origin, b.destination FROM bid b
     WHERE b.bidder = $1 OR b.bidStatus <> 'pending'
-    GROUP BY b.driver, b.date, b.time, b.origin, b.destination;
+    GROUP BY b.driver, b.date, b.time, b.origin, b.destination);
     `
       ,[user, currentDate, currentTime]
     )
@@ -89,7 +89,7 @@ const listCarsUserOwns = async (user, db) => {
  *
  * @param filters An object containing specific filter options. @see rider router
  */
-const listConfirmedRidesForRider = async (user, filters, db) => {
+const listConfirmedRidesForRider = async (user, currentDate, currentTime, filters, db) => {
   return db
     .any(
       `
@@ -101,9 +101,13 @@ const listConfirmedRidesForRider = async (user, filters, db) => {
       AND TO_CHAR(CAST(b.date as timestamp), 'DD Month YYYY') LIKE '%${filters.date}%'
       AND CAST(b.time as varchar(20)) LIKE '%${filters.time}%'
       AND b.origin LIKE '%${filters.origin}%'
-      AND b.destination LIKE '%${filters.destination}%"'
+      AND b.destination LIKE '%${filters.destination}%'
+      AND (a.date > $2
+           OR (a.date = $2
+              AND a.time > $3)
+           )
     `,
-      [user]
+      [user, currentDate, currentTime]
     )
     .then(result => {
       console.log(`Retrieved all confirmed car rides for rider ${user}!`)
@@ -121,7 +125,7 @@ const listConfirmedRidesForDriver = async (user, db) => {
   return db
     .any(
       `
-    SELECT a.driver, a.date, a.time, a.origin, a.destination, a.car FROM advertisedCarRide a
+    SELECT DISTINCT a.driver, a.date, a.time, a.origin, a.destination, a.car FROM advertisedCarRide a
     NATURAL JOIN bid b
     WHERE b.bidStatus = 'successful'
       AND a.driver = $1;
@@ -138,12 +142,13 @@ const listConfirmedRidesForDriver = async (user, db) => {
 }
 
 /**
- * List car rides that user will be a driver for, that are still pending.
+ * List car rides that user will be a driver for, still have available seats.
  */
 const listPendingRidesForDriver = async (user, db) => {
   return db
     .any(
       `
+<<<<<<< HEAD
     SELECT a.driver, a.date, a.time, a.origin, a.destination, a.car 
     FROM advertisedCarRide a
     LEFT OUTER JOIN bid b ON a.driver = b.driver
@@ -153,6 +158,30 @@ const listPendingRidesForDriver = async (user, db) => {
       AND a.destination = b.destination
     WHERE a.driver = $1 AND (b.bidStatus = 'pending' OR b.bidStatus IS NULL)
     GROUP BY a.driver, a.date, a.time, a.origin, a.destination;
+=======
+      SELECT DISTINCT a.driver, a.date, a.time, a.origin, a.destination, a.car 
+      FROM advertisedCarRide a
+      WHERE 
+      -- This ride is advertised by the driver
+      a.driver = $1 
+      -- This ride is not overdue
+      AND (a.date > current_date 
+           OR (a.date = current_date
+              AND a.time > current_time)
+          )
+      -- This ride has not reached maximum capacity
+      -- This condition makes checking for bidstatus redundant
+      AND NOT EXISTS( 
+        SELECT 1
+        FROM car_rides_with_capacity c
+        WHERE a.driver = c.driver
+        AND a.date = c.date
+        AND a.time = c.time
+        AND a.origin = c.origin
+        AND a.destination = c.destination
+        AND c.currcapacity >= c.maxcapacity)
+      ORDER BY a.driver, a.date, a.time, a.origin, a.destination;
+>>>>>>> 3559212e26e5f4fcd6951f09d38473a84b0e68e7
     `,
       [user]
     )
@@ -171,5 +200,10 @@ module.exports = {
   listConfirmedRidesForRider,
   listConfirmedRidesForDriver,
   listPendingRidesForDriver,
+<<<<<<< HEAD
   listCarsUserOwns
+=======
+  listCarsUserOwns,
+  delAdvertisedRide
+>>>>>>> 3559212e26e5f4fcd6951f09d38473a84b0e68e7
 }

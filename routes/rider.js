@@ -25,6 +25,8 @@ router.get('/', connect.ensureLoggedIn('/login') ,async function(req, res, next)
   // 3) All upcoming car rides that can be bid for
   const confirmedRides = await db.ride.listConfirmedRidesForRider(
     riderId,
+    currentDate,
+    currentTime,
     filters,
     db.exposedInstance
   )
@@ -35,6 +37,8 @@ router.get('/', connect.ensureLoggedIn('/login') ,async function(req, res, next)
   )
   const unsuccessfulBiddedRides = await db.bid.listUnsuccessfulBidsForUser(
     riderId,
+    currentDate,
+    currentTime,
     db.exposedInstance
   )
 

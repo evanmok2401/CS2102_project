@@ -147,7 +147,41 @@ const highestCurrentBid = async (driver, date, time, origin, destination, db) =>
       AND b.date = $2
       AND b.time = $3
       AND b.origin = $4
-      AND b.destination = $5;`,
+      AND b.destination = $5
+      AND b.bidstatus = 'pending';`,
+      [driver, new Date(date), time, origin, destination]
+    )
+    .then(result => {
+      console.log('success!')
+      // success;
+      return result
+    })
+    .catch(error => {
+      console.log(error)
+      // error;
+    })
+}
+
+/**
+ * Gets the winning bid for the particular ride, together
+ * with user information.
+ *
+ * @return [] or [object] with bid and user information
+ */
+const winningBid = async (driver, date, time, origin, destination, db) => {
+  return db
+    .any(
+      `
+      SELECT b.bidAmount, b.driver, b.date, b.time, b.origin, b.destination,
+        u.email, u.contactNumber, u.name
+      FROM bid b, appUserAccount u
+      WHERE b.driver = $1
+      AND b.date = $2
+      AND b.time = $3
+      AND b.origin = $4
+      AND b.destination = $5
+      AND b.bidstatus = 'successful'
+      AND b.bidder = u.userID;`,
       [driver, new Date(date), time, origin, destination]
     )
     .then(result => {
@@ -162,7 +196,7 @@ const highestCurrentBid = async (driver, date, time, origin, destination, db) =>
 }
 
 // List all bids a user has made
-const listUnsuccessfulBidsForUser = async (user, db) => {
+const listUnsuccessfulBidsForUser = async (user, currentDate, currentTime, db) => {
   return db
     .any(
       `
@@ -171,8 +205,12 @@ const listUnsuccessfulBidsForUser = async (user, db) => {
     NATURAL JOIN bid b
     WHERE b.bidStatus = 'unsuccessful'
       AND b.bidder = $1
+      AND (a.date > $2
+           OR (a.date = $2
+              AND a.time > $3)
+           )
     ORDER BY a.date DESC;`,
-      [user]
+      [user, currentDate, currentTime]
     )
     .then(result => {
       console.log(`List Unsuccessful Bids:\n${JSON.stringify(result)}`)
@@ -206,15 +244,7 @@ const updateBidStatus = async (
           AND time = $4 
           AND origin = $5 
           AND destination = $6;
-
-        UPDATE bid
-        SET bidStatus = 'unsuccessful' 
-        WHERE bidder <> $1 
-          AND driver = $2 
-          AND date = $3 
-          AND time = $4 
-          AND origin = $5
-          AND destination = $6;`,
+          `,
       [successfulBidder, driver, date, time, origin, destination]
     )
     .then(() => {
@@ -227,18 +257,23 @@ const updateBidStatus = async (
     })
 }
 
-
-const listBidsForRide = async (driver, date, time, origin, destination, db) => {
+/*
+List bids available for driver to confirm
+ */
+const listPendingBidsForRide = async (driver, date, time, origin, destination, db) => {
   return db
     .any(
       `
-      SELECT *
-      FROM bid b
+      SELECT b.bidAmount, b.bidder, b.driver, b.date, b.time,
+        b.origin, b.destination, u.name as bidderName
+      FROM bid b, appUserAccount u
       WHERE b.driver = $1
         AND b.date = $2
         AND b.time = $3
         AND b.origin = $4
         AND b.destination = $5
+        AND b.bidstatus = 'pending'
+        AND b.bidder = u.userID
       ORDER BY b.bidAmount DESC;
       `,
       [driver, new Date(date), time, origin, destination]
@@ -258,8 +293,9 @@ module.exports = {
   createUserBid,
   updateUserBid,
   listPendingBidsForUser,
-  listBidsForRide,
+  listPendingBidsForRide,
   highestCurrentBid,
+  winningBid,
   listUnsuccessfulBidsForUser,
   deleteUserBid,
   updateBidStatus

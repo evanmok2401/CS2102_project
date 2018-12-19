@@ -72,6 +72,7 @@ router.post('/addCar', async function(req, res, next) {
   res.redirect('/driver')
 })
 
+<<<<<<< HEAD
 /* POST Car */
 router.post('/addCar', async function(req, res, next) {
   const owner_field = req.body.owner_field
@@ -92,6 +93,8 @@ router.post('/addCar', async function(req, res, next) {
   res.redirect('/driver')
 })
 
+=======
+>>>>>>> 3559212e26e5f4fcd6951f09d38473a84b0e68e7
 function makeReadable(rides) {
   var len = rides.length;
   for (var i = 0; i < len; i++) {
