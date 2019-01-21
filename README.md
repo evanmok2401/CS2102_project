@@ -6,6 +6,7 @@
 
 ## Concept
 The main concept behind the design of Hitch is to keep the web interface simple to navigate and fulfil user requirements of a car-sharing website. The design of the system implementation would require two main components: the database and the web server. The database server implemented is PostgreSQL which is a relation database management system (RDBMS) and the webpage is hosted on ExpressJS locally. ExpressJS is a javascript MVC framework for simple websites. We use a library, pg-promise, to interact with the database. It extensively uses this library to setup, populate and teardown the database programmatically. The Web UI itself is made using HTML, CSS and a templating framework called HandlebarJS.
+![](/images/Hitch4.jpg)
 
 ## Setup
 
